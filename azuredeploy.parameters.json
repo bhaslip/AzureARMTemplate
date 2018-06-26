@@ -1,0 +1,21 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "ExecutechDCName": {
+      "value": "Domain"
+    },
+    "ExecutechDCAdminUserName": {
+      "value": "Executech"
+    },
+    "domainName": {
+      "value": "executech.cloud"
+    },
+    "PublicIPDnsName": {
+      "value": "executechdc"
+    },
+    "ExecutechDCAdminPassword": {
+      "value": "@dm!n4Test"
+    }
+  }
+}

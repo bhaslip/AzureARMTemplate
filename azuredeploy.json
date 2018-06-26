@@ -1,0 +1,262 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "VHDsType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_ZRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Premium_LRS"
+      ]
+    },
+    "ExecutechDCName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ExecutechDCAdminUserName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ExecutechDCAdminPassword": {
+      "type": "securestring"
+    },
+    "domainName": {
+      "type": "string",
+      "metadata": {
+        "description": "Full FQDN name for the forest root domain."
+      },
+      "defaultValue": "contoso.cloud",
+      "minLength": 4
+    },
+      "ExecutechDCWindowsOSVersion": {
+        "type": "string",
+        "defaultValue": "2016-Datacenter",
+        "allowedValues": [
+          "2008-R2-SP1",
+          "2012-Datacenter",
+          "2012-R2-Datacenter",
+          "2016-Datacenter",
+          "Windows-Server-Technical-Preview"
+        ]
+      },
+      "PublicIPDnsName": {
+        "type": "string",
+        "minLength": 1
+      },
+      "_artifactsLocation": {
+        "type": "string",
+        "metadata": {
+          "description": "Auto-generated container in staging storage account to receive post-build staging folder upload"
+        }
+      },
+      "_artifactsLocationSasToken": {
+        "type": "securestring",
+        "metadata": {
+          "description": "Auto-generated token to access _artifactsLocation"
+        }
+      }
+    },
+  "variables": {
+    "VNETPrefix": "10.0.0.0/16",
+    "VNETSubnet1Name": "Subnet-1",
+    "VNETSubnet1Prefix": "10.0.0.0/24",
+    "VNETSubnet2Name": "Subnet-2",
+    "VNETSubnet2Prefix": "10.0.1.0/24",
+    "VHDsName": "[concat('vhds', uniqueString(resourceGroup().id))]",
+    "ExecutechDCImagePublisher": "MicrosoftWindowsServer",
+    "ExecutechDCImageOffer": "WindowsServer",
+    "ExecutechDCOSDiskName": "ExecutechDCOSDisk",
+    "ExecutechDCVmSize": "Standard_D2_v2",
+    "ExecutechDCVnetID": "[resourceId('Microsoft.Network/virtualNetworks', 'VNET')]",
+    "ExecutechDCSubnetRef": "[concat(variables('ExecutechDCVnetID'), '/subnets/', variables('VNETSubnet1Name'))]",
+    "ExecutechDCStorageAccountContainerName": "vhds",
+    "ExecutechDCNicName": "[concat(parameters('ExecutechDCName'), 'NetworkInterface')]",
+    "PublicIPName": "PublicIP",
+    "DCPROMOArchiveFolder": "DSC",
+    "DCPROMOArchiveFileName": "DCPROMO.zip"
+  },
+  "resources": [
+    {
+      "name": "VNET",
+      "type": "Microsoft.Network/virtualNetworks",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "VNET"
+      },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[variables('VNETPrefix')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('VNETSubnet1Name')]",
+            "properties": {
+              "addressPrefix": "[variables('VNETSubnet1Prefix')]"
+            }
+          },
+          {
+            "name": "[variables('VNETSubnet2Name')]",
+            "properties": {
+              "addressPrefix": "[variables('VNETSubnet2Prefix')]"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('VHDsName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-01-01",
+      "sku": {
+        "name": "[parameters('VHDsType')]"
+      },
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "VHDs"
+      },
+      "kind": "Storage"
+    },
+    {
+      "name": "[variables('ExecutechDCNicName')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'VNET')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', variables('PublicIPName'))]"
+      ],
+      "tags": {
+        "displayName": "ExecutechDCNic"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "10.0.0.5",
+              "subnet": {
+                "id": "[variables('ExecutechDCSubnetRef')]"
+              },
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('PublicIPName'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[parameters('ExecutechDCName')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('VHDsName'))]",
+        "[resourceId('Microsoft.Network/networkInterfaces', variables('ExecutechDCNicName'))]"
+      ],
+      "tags": {
+        "displayName": "ExecutechDC"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[variables('ExecutechDCVmSize')]"
+        },
+        "osProfile": {
+          "computerName": "[parameters('ExecutechDCName')]",
+          "adminUsername": "[parameters('ExecutechDCAdminUsername')]",
+          "adminPassword": "[parameters('ExecutechDCAdminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "[variables('ExecutechDCImagePublisher')]",
+            "offer": "[variables('ExecutechDCImageOffer')]",
+            "sku": "[parameters('ExecutechDCWindowsOSVersion')]",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "ExecutechDCOSDisk",
+            "vhd": {
+              "uri": "[concat(reference(resourceId('Microsoft.Storage/storageAccounts', variables('VHDsName')), '2016-01-01').primaryEndpoints.blob, variables('ExecutechDCStorageAccountContainerName'), '/', variables('ExecutechDCOSDiskName'), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', variables('ExecutechDCNicName'))]"
+            }
+          ]
+        }
+      },
+      "resources": [
+        {
+          "name": "Microsoft.Powershell.DSC",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2016-03-30",
+          "dependsOn": [
+            "[resourceId('Microsoft.Compute/virtualMachines', parameters('ExecutechDCName'))]"
+          ],
+          "tags": {
+            "displayName": "DCPROMO"
+          },
+          "properties": {
+            "publisher": "Microsoft.Powershell",
+            "type": "DSC",
+            "typeHandlerVersion": "2.9",
+            "autoUpgradeMinorVersion": true,
+            "settings": {
+              "configuration": {
+                "url": "[concat(parameters('_artifactsLocation'), '/', variables('DCPROMOArchiveFolder'), '/', variables('DCPROMOArchiveFileName'))]",
+                "script": "DCPROMO.ps1",
+                "function": "Main"
+              },
+              "configurationArguments": {
+                "domainName": "[parameters('domainName')]"
+              }
+            },
+            "protectedSettings": {
+              "configurationArguments": {
+                "AdminCreds": {
+                  "userName": "[parameters('ExecutechDCAdminUserName')]",
+                  "password": "[parameters('ExecutechDCAdminPassword')]"
+                }
+              },
+              "configurationUrlSasToken": "[parameters('_artifactsLocationSasToken')]"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "[variables('PublicIPName')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-03-30",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "PublicIP"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "dnsSettings": {
+          "domainNameLabel": "[parameters('PublicIPDnsName')]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+  }
+}
