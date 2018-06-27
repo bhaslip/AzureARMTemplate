@@ -52,7 +52,7 @@
       "metadata": {
         "description": "The location of resources, such as templates and DSC modules, that the template depends on."
       },
-      "defaultValue": "https://raw.github.com/bhaslip/AzureARMTemplate"
+      "defaultValue": "https://github.com/bhaslip/AzureARMTemplate/raw/master/DSC/DCPROMO.zip"
     },
       "_artifactsLocationSasToken": {
         "type": "securestring",
