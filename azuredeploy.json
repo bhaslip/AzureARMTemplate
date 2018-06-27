@@ -52,7 +52,7 @@
       "metadata": {
         "description": "The location of resources, such as templates and DSC modules, that the template depends on."
       },
-      "defaultValue": "https://github.com/bhaslip/AzureARMTemplate/raw/master/DSC/DCPROMO.zip"
+      "defaultValue": "https://raw.githubusercontent.com/bhaslip/AzureARMTemplate/master"
     },
       "_artifactsLocationSasToken": {
         "type": "securestring",
@@ -221,7 +221,7 @@
             "autoUpgradeMinorVersion": true,
             "settings": {
               "configuration": {
-                "url": "[concat(parameters('_artifactsLocation'), '/', variables('DCPROMOArchiveFolder'), '/', variables('DCPROMOArchiveFileName'))]",
+                "url": "[concat(parameters('_artifactsLocation'),'/DSC/DCPROMO.zip')]",
                 "script": "DCPROMO.ps1",
                 "function": "Main"
               },
