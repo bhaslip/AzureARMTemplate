@@ -63,11 +63,9 @@
       }
     },
   "variables": {
-    "VNETPrefix": "10.0.0.0/16",
-    "VNETSubnet1Name": "Subnet-1",
-    "VNETSubnet1Prefix": "10.0.0.0/24",
-    "VNETSubnet2Name": "Subnet-2",
-    "VNETSubnet2Prefix": "10.0.1.0/24",
+    "VNETPrefix": "172.16.0.0/12",
+    "VNETSubnet1Name": "default",
+    "VNETSubnet1Prefix": "172.16.0.0/24",
     "VHDsName": "[concat('vhds', uniqueString(resourceGroup().id))]",
     "ExecutechDCImagePublisher": "MicrosoftWindowsServer",
     "ExecutechDCImageOffer": "WindowsServer",
@@ -145,7 +143,7 @@
             "name": "ipconfig1",
             "properties": {
               "privateIPAllocationMethod": "Static",
-              "privateIPAddress": "10.0.0.5",
+              "privateIPAddress": "172.16.0.5",
               "subnet": {
                 "id": "[variables('ExecutechDCSubnetRef')]"
               },
