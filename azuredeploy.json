@@ -101,12 +101,6 @@
             "properties": {
               "addressPrefix": "[variables('VNETSubnet1Prefix')]"
             }
-          },
-          {
-            "name": "[variables('VNETSubnet2Name')]",
-            "properties": {
-              "addressPrefix": "[variables('VNETSubnet2Prefix')]"
-            }
           }
         ]
       }
